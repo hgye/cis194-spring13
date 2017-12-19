@@ -2,6 +2,7 @@
 module LogAnalysis where
 
 import Log
+import Data.List (isInfixOf)
 
 parseTimeStamp :: String -> TimeStamp
 parseTimeStamp s = read s
@@ -90,14 +91,29 @@ getRelevantInfo errno (x:xs)  =
           _ -> (getRelevantInfo errno xs)
       _ -> (getRelevantInfo errno xs)
 
--- getRelevantInfo' :: [LogMessage] -> [LogMessage]
--- getRelevantInfo' [] = []
--- getRelevantInfo' (x:xs)  =
---     case getMessageType x of
---       Just Info -> x:(getRelevantInfo' xs)
---       _ -> (getRelevantInfo' xs)
+getRelevantInfo' :: [LogMessage] -> [LogMessage]
+getRelevantInfo' [] = []
+getRelevantInfo' (x:xs)  =
+  let t = getTimeStamp x
+  in
+    case (100 < t) && (t < 130) of
+      True -> x:(getRelevantInfo' xs)
+      _ -> (getRelevantInfo' xs)
 
 whatWentWrong :: [LogMessage] -> [String]
 whatWentWrong =
   map getMessage.inOrder.build.(getRelevantInfo 49)
 
+
+getRelevantInfo'' :: [LogMessage] -> [LogMessage]
+getRelevantInfo'' [] = []
+getRelevantInfo'' (x:xs)  =
+  let m = getMessage x
+  in
+    case (isInfixOf "mustard" m) ||
+         (isInfixOf "Mustard" m) ||
+         (isInfixOf "watch" m) ||
+         (isInfixOf "open" m)
+    of
+      True -> x:(getRelevantInfo'' xs)
+      _ -> (getRelevantInfo'' xs)
