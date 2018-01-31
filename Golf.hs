@@ -1,8 +1,8 @@
 {-# OPTIONS_GHC -Wall #-}
 module Golf where
 
-import Data.List (drop,tails)
-import Control.Applicative
+-- import Control.Applicative
+import Data.List (drop,tails,replicate, splitAt)
 
 everyn :: Int -> [a] -> [a]
 everyn _ [] = []
@@ -105,20 +105,30 @@ escape sequences to indicate newline characters. To actually visualize
 the histogram as in the examples above, use putStr, for example,
 putStr (histogram [3,5]).
 -}
-countTimes:: [Int] -> [(Integer, Integer)]
 
-countTimes = foldr (\x times ->
-                      (take x times) ++
-                      [(fst (times!!x), (snd (times!!x)+1))] ++
-                      (drop (x+1) times))
-             (zip [0..] $ take 10 $ repeat 0)
+func1 :: Int -> [Bool]
+func1 x = (\ n item ls ->
+          let (a, (_:b)) = splitAt n ls
+          in
+            a ++ (item:b)) x True $ replicate 10 False
 
-printCount :: [Int] -> String
-printCount = foldr (\ x pOut ->
-                      (replicate x ' ')
-                      ++ "*" ++
-                      (replicate (10-x-1)  ' ')
-                      ++ "\n" ++ pOut) []
+func2 :: [Bool] -> [[Bool]] -> [[Bool]]
+func2 x [] = [x]
+func2 x (y:[]) = case (foldr (||) False $ zipWith (&&) x y) of
+  True -> x:y:[]
+  False -> zipWith (||) x y : []
+func2 x (y:ys) = case (foldr (||) False $ zipWith (&&) x y) of
+  True ->  x:y:ys
+  False -> y : func2 x ys
 
--- histogram :: [Integer] -> String
--- histogram = countTimes.printCount
+histo :: [Int] -> [[Bool]]
+histo = foldr (func2.func1) []
+
+func3 :: [Bool] -> String
+func3 [] = "\n"
+func3 (x:xs) = case x of
+  True -> "*" ++ func3 xs
+  False -> " " ++ func3 xs
+
+histogram' :: [Int] -> String
+histogram' = concat.(map func3).histo
