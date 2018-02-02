@@ -116,5 +116,10 @@ xor = foldr g False
   where g a b | a == b = False
               | otherwise = True
 
---map' :: (a -> b) -> [a] -> [b]
---map' f = foldr 
+map' :: (a -> b) -> [a] -> [b]
+map' f = foldr g []
+  where g x l = f x : l
+-- map' f  = foldr (\x acc -> f x : acc) [] 
+
+myFoldl :: (a -> b -> a) -> a -> [b] -> a
+myFoldl f base xs = foldr 
