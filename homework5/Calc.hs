@@ -1,10 +1,12 @@
+{-# LANGUAGE TypeSynonymInstances #-}
 {-# OPTIONS_GHC -Wall #-}
 
 module Calc where
 
 import ExprT
-
+import StackVM
 import Parser
+
 {-
 Exercise 1
 Write Version 1 of the calculator: an evaluator for ExprT, with the
@@ -15,8 +17,8 @@ For example ,eval (Mul (Add (Lit 2) (Lit 3)) (Lit 4)) == 20.
 eval :: ExprT -> Integer
 eval e = case e of
   Lit i -> i
-  Add e1 e2 -> (+) (eval e1) (eval e2)
-  Mul e1 e2 -> (*) (eval e1) (eval e2)
+  ExprT.Add e1 e2 -> (+) (eval e1) (eval e2)
+  ExprT.Mul e1 e2 -> (*) (eval e1) (eval e2)
 
 
 {-
@@ -48,7 +50,7 @@ evalM e  = case e of
   Just x -> Just $ eval x
 
 evalStr :: String -> Maybe Integer
-evalStr  = evalM.parseExp Lit Add Mul
+evalStr  = evalM.parseExp Lit ExprT.Add ExprT.Mul
 
 {-
 Exercise 3
@@ -91,16 +93,60 @@ reify $ mul (add (lit 2) (lit 3)) (lit 4)
 at the ghci prompt.
 -}
 class Expr a where
-  lit :: Integer->a
+  lit :: Integral b => b->a
   add :: a->a->a
   mul :: a->a->a
 
 instance Expr ExprT where
-  lit a = Lit a
-  add e1 e2 = Add e1 e2
-  mul e1 e2 = Mul e1 e2
+  lit a = Lit (toInteger a)
+  add e1 e2 = ExprT.Add e1 e2
+  mul e1 e2 = ExprT.Mul e1 e2
 
 reify :: ExprT -> ExprT
 reify = id
 
 instance Expr Bool where
+  lit a = case (toInteger a)>0 of
+    True -> True
+    False -> False
+  add e1 e2 = (||) e1 e2
+  mul e1 e2 = (&&) e1 e2
+
+newtype MinMax = MinMax Integer deriving (Eq, Show)
+
+evalMinMax :: MinMax -> Integer
+evalMinMax (MinMax a) = a
+-- evalMinMax e = case e of
+--   MinMax a -> a
+
+instance Expr MinMax where
+  lit a = MinMax (toInteger a)
+  add e1 e2 = lit $ max (evalMinMax e1) (evalMinMax e2)
+  mul e1 e2 = lit $ min (evalMinMax e1) (evalMinMax e2)
+
+
+newtype Mod7 = Mod7 Integer deriving (Eq, Show)
+
+evalMod7 :: Mod7 -> Integer
+evalMod7 (Mod7 a) = a
+--evalMod7 e = case e of
+--  Mod7 a -> a
+
+instance Expr Mod7 where
+  lit a = Mod7  ((\x -> mod x 7) (toInteger a))
+  add e1 e2 = lit $ mod ((evalMod7 e1)+(evalMod7 e2)) 7
+  mul e1 e2 = lit $ mod ((evalMod7 e1)*(evalMod7 e2)) 7
+
+testExp :: Expr a => Maybe a
+testExp = parseExp lit add mul "(3 * -4) + 5"
+-- testInteger = testExp :: Maybe Integer
+testBool = testExp :: Maybe Bool
+testMM = testExp :: Maybe MinMax
+testSat = testExp :: Maybe Mod7
+
+
+-- {- ex5 -}
+instance Expr Program where
+  lit a = PushI (toInteger  1a)
+  add e1 e2 = stackVM e1 ++ stackVM e2 ++ [StackVM.Add]
+  mul e1 e2 = stackVM e1 ++ stackVM e2 ++ [StackVM.Mul]
