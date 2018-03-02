@@ -1,4 +1,5 @@
-{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
+--{-# LANGUAGE TypeSynonymInstances #-}
 {-# OPTIONS_GHC -Wall #-}
 
 module Calc where
@@ -137,6 +138,7 @@ instance Expr Mod7 where
   add e1 e2 = lit $ mod ((evalMod7 e1)+(evalMod7 e2)) 7
   mul e1 e2 = lit $ mod ((evalMod7 e1)*(evalMod7 e2)) 7
 
+
 testExp :: Expr a => Maybe a
 testExp = parseExp lit add mul "(3 * -4) + 5"
 -- testInteger = testExp :: Maybe Integer
@@ -147,6 +149,9 @@ testSat = testExp :: Maybe Mod7
 
 -- {- ex5 -}
 instance Expr Program where
-  lit a = PushI (toInteger  1a)
-  add e1 e2 = stackVM e1 ++ stackVM e2 ++ [StackVM.Add]
-  mul e1 e2 = stackVM e1 ++ stackVM e2 ++ [StackVM.Mul]
+   lit a = [PushI (toInteger  a)]
+   add e1 e2 = e1 ++ e2 ++ [StackVM.Add]
+   mul e1 e2 = e1 ++ e2 ++ [StackVM.Mul]
+
+compile :: String -> Maybe Program
+compile = parseExp lit add mul
