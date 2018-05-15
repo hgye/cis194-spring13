@@ -105,16 +105,17 @@ instance Buffer (JoinList (Score, Size) String) where
     Empty -> ""
     (Single _ s) -> s
     (Append _ jl1 jl2) -> toString jl1 ++ toString jl2
-  fromString s = foldl f Empty $ lines s
-    where f  Empty l = scoreSizeLine l
-          f t@(Single _ _) l= t +++ scoreSizeLine l
-          f t@(Append m jl1 jl2) l =
-            case numLines jl1 == numLines jl2 of
-              True -> t +++ scoreSizeLine l
-              False ->
-                 case numLines jl1 > numLines jl2 of
-                   True -> Append ((score.tag) t, (size.tag) t + (Size 1)) jl1 (f jl2 l)
-                   False -> Append m (f jl1 l) jl2
+  fromString s = foldl (+++) Empty $ scoreSizeLine <$> lines s
+  -- fromString s = foldl f Empty $ lines s
+  --   where f  Empty l = scoreSizeLine l
+  --         f t@(Single _ _) l= t +++ scoreSizeLine l
+  --         f t@(Append m jl1 jl2) l =
+  --           case numLines jl1 == numLines jl2 of
+  --             True -> t +++ scoreSizeLine l
+  --             False ->
+  --                case numLines jl1 > numLines jl2 of
+  --                  True -> Append ((score.tag) t, (size.tag) t + (Size 1)) jl1 (f jl2 l)
+  --                  False -> Append m (f jl1 l) jl2
 
   line = indexJ
   replaceLine n l b = takeJ (n-1) b +++ 
