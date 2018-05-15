@@ -7,6 +7,7 @@ import Data.Monoid
 import Sized
 import Scrabble
 import Buffer
+import Editor
 
 -- data JoinListBasic a = Empty
 --   | Single a
@@ -19,6 +20,8 @@ data JoinList m a = Empty
 
 -- ex1
 (+++) :: Monoid m => JoinList m a -> JoinList m a -> JoinList m a
+(+++) Empty x = x
+(+++) x Empty = x
 (+++) x y = Append ((tag x) <> (tag y)) x y
 
 tag :: Monoid m => JoinList m a -> m
@@ -62,28 +65,28 @@ dropJ :: (Sized b, Monoid b) =>
   Int -> JoinList b a -> JoinList b a
 dropJ _ Empty = Empty
 dropJ i jl@(Single _ _) =
-  case i > 1 of
+  case i >= 1 of
     True -> Empty
     False -> jl
-dropJ i jl@(Append m jl1 jl2) =
-  case (getSize.size.tag $ jl) > i of
+dropJ i jl@(Append _ jl1 jl2) =
+  case (getSize.size.tag $ jl) <= i of
     True -> Empty
-    False -> case (getSize.size.tag $ jl1) > i of
-      True -> (Append m (dropJ i jl1) jl2)
-      False -> dropJ (i - (getSize.size.tag $ jl1)) jl2
+    False -> case i >= (getSize.size.tag $ jl1) of
+      True ->  dropJ (i - (getSize.size.tag $ jl1)) jl2
+      False -> dropJ i jl1 +++ jl2
 
 takeJ :: (Sized b, Monoid b) =>
   Int -> JoinList b a -> JoinList b a
 takeJ _ Empty = Empty
 takeJ i jl@(Single _ _) =
-  case i > 0 of
+  case i == 1 of
     True -> jl
     False -> Empty
 takeJ i jl@(Append m jl1 jl2) =
   let f = getSize.size.tag in
     case (f jl) < i of
       True -> jl
-      False -> case (f jl1) > i of
+      False -> case (f jl1) >=i of
         True -> takeJ i jl1
         False -> (Append m jl1 (takeJ (i - (f jl1)) jl2))
 
@@ -92,16 +95,33 @@ scoreLine :: String -> JoinList Score String
 scoreLine [] = Empty
 scoreLine s = (Single (scorestring s) s)
 
+scoreSizeLine :: String -> JoinList (Score, Size) String
+scoreSizeLine [] = Empty
+scoreSizeLine s = (Single (scorestring s, Size 1) s)
+
 -- ex4
 instance Buffer (JoinList (Score, Size) String) where
   toString jl = case jl of 
     Empty -> ""
     (Single _ s) -> s
-    (Append m jl1 jl2) -> toString jl1 ++ toString jl2
-  fromString s
-    | [] = Empty
-    | otherwise = Single (scorestring s, Size 1) s
-  -- line = indexJ
-  -- replaceLine n l b = l
-  -- numLines = fst.tag
-  -- value = snd.tag
+    (Append _ jl1 jl2) -> toString jl1 ++ toString jl2
+  fromString s = foldl f Empty $ lines s
+    where f  Empty l = scoreSizeLine l
+          f t@(Single _ _) l= t +++ scoreSizeLine l
+          f t@(Append m jl1 jl2) l =
+            case numLines jl1 == numLines jl2 of
+              True -> t +++ scoreSizeLine l
+              False ->
+                 case numLines jl1 > numLines jl2 of
+                   True -> Append ((score.tag) t, (size.tag) t + (Size 1)) jl1 (f jl2 l)
+                   False -> Append m (f jl1 l) jl2
+
+  line = indexJ
+  replaceLine n l b = takeJ (n-1) b +++ 
+                      scoreSizeLine l +++
+                      dropJ n b
+  numLines = getSize.size.tag
+  value  = getScore.score.tag
+
+main = runEditor editor  $
+  scoreSizeLine "this is the buffer"

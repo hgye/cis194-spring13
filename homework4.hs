@@ -83,8 +83,19 @@ data Tree a = Leaf
   | Node Integer (Tree a) a (Tree a)
   deriving (Show, Eq)
 
---foldTree :: [a] -> Tree a
---foldTree 
+getNode :: Tree a -> Integer
+getNode Leaf = -1
+getNode (Node x _ _ _) = x
+
+foldTree :: [a] -> Tree a
+foldTree  = foldr insertTree Leaf 
+
+insertTree :: a -> Tree a -> Tree a
+insertTree x Leaf = Node 0 Leaf x Leaf
+insertTree x tree@(Node n ltree v rtree) =
+  case getNode ltree > getNode rtree of
+    True -> Node (n+1) ltree v (insertTree x rtree)
+    False -> Node n (insertTree x ltree) v rtree
 
 {-
 Exercise 3: More folds!
