@@ -72,7 +72,46 @@ firstMaybe f = fmap (first f)
 instance Functor Parser where
   fmap :: (a->b) -> Parser a -> Parser b
   fmap f p = Parser h
-      where h s = firstMaybe f ((runParser p) s)
+      where h s = fmap (first f) ((runParser p) s)
 -- fmap f p@(Parser g) = Parser h
 --    where h (runParser.Parser $ g $ s) = firstMaybe f ((runParser p) s)
 
+instance Applicative Parser where
+  pure a = Parser g
+    where g "" = Just (a, "")
+          g _ = Nothing
+
+  (<*>) :: Parser (a->b) -> Parser a -> Parser b
+  pab <*> pb = Parser h
+    where h s = case (runParser pab) s of
+            Nothing -> Nothing
+            Just(f, sRest) -> fmap (first f) ((runParser pb) sRest)
+
+-- ex3
+-- You should implement
+-- each of the following exercises using the Applicative interface to put
+-- together simpler parsers into more complex ones. Do not implement
+-- them using the low-level definition of a Parser! In other words, pretend
+-- that you do not have access to the Parser constructor or even
+-- know how the Parser type is defined.
+abParser :: Parser (Char, Char)
+abParser = (\x y ->(x,y)) <$> (char 'a') <*> (char 'b')
+
+abParser_ :: Parser ()
+abParser_ = (\_ _ -> ()) <$> (char 'a') <*> (char 'b')
+
+intPair :: Parser [Integer]
+intPair = (\x _ y -> [x,y]) <$> posInt <*> (char ' ') <*> posInt
+
+-- ex4
+instance Alternative Parser where
+  empty = Parser p
+   where p _ = Nothing
+-- empty  _ = Nothing
+  p1 <|> p2 = Parser p
+    where p s = (runParser p1 s) <|> (runParser p2 s)
+
+--ex5
+intOrUppercase :: Parser ()
+intOrUppercase = ((\ _ -> ()) <$> posInt)
+                 <|> ((\ _ -> ()) <$> (satisfy isUpper))
