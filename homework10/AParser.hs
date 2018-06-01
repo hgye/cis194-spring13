@@ -78,8 +78,8 @@ instance Functor Parser where
 
 instance Applicative Parser where
   pure a = Parser g
-    where g "" = Just (a, "")
-          g _ = Nothing
+    where g "" = Nothing
+          g s = Just(a, s)
 
   (<*>) :: Parser (a->b) -> Parser a -> Parser b
   pab <*> pb = Parser h
@@ -115,3 +115,18 @@ instance Alternative Parser where
 intOrUppercase :: Parser ()
 intOrUppercase = ((\ _ -> ()) <$> posInt)
                  <|> ((\ _ -> ()) <$> (satisfy isUpper))
+
+-- work for lecture 11
+(*>)       :: Applicative f => f a -> f b -> f b
+(*>) fa fb = (\ _ y -> y ) <$>  fa <*> fb
+
+mapA :: Applicative f => (a -> f b) -> ([a] -> f [b])
+mapA g = h
+  where h [] = pure []
+        h (x:xs) = liftA2 (\ x y -> [x] ++ y) (g x) (h xs)
+
+-- sequenceA  :: Applicative f => [f a] -> f [a]
+-- sequenceA = liftA2 sequence
+
+-- replicateA :: Applicative f => Int -> f a -> f [a]
+-- replicateA = liftA2 replicate
