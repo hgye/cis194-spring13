@@ -125,8 +125,9 @@ mapA g = h
   where h [] = pure []
         h (x:xs) = liftA2 (\ x y -> [x] ++ y) (g x) (h xs)
 
--- sequenceA  :: Applicative f => [f a] -> f [a]
--- sequenceA = liftA2 sequence
+sequenceA'  :: Applicative f => [f a] -> f [a]
+sequenceA' = mapA f
+  where f = id
 
 -- replicateA :: Applicative f => Int -> f a -> f [a]
 -- replicateA = liftA2 replicate
